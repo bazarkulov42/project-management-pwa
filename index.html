@@ -4,1051 +4,727 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Система управления проектами</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: #f3f4f6;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f3f4f6; min-height: 100vh; display: flex; justify-content: center; }
     #root { width: 100%; max-width: 420px; position: relative; }
 
-    /* Header */
-    .header {
-      position: sticky; top: 0; z-index: 100;
-      background: #fff; border-bottom: 1px solid #e5e7eb;
-      padding: 12px 16px 8px;
-    }
+    .header { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid #e5e7eb; padding: 12px 16px 8px; }
     .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     .header-title { display: flex; align-items: center; gap: 8px; }
-    .header-title span.icon { font-size: 20px; }
     .header-title h1 { font-size: 17px; font-weight: 700; color: #111827; }
     .header-subtitle { font-size: 12px; color: #6b7280; margin-top: 1px; }
-    .btn-add {
-      background: var(--section-color, #1a6fd4); color: #fff;
-      border: none; border-radius: 20px; padding: 7px 14px;
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      white-space: nowrap;
-    }
-    .search-bar {
-      width: 100%; padding: 8px 12px;
-      border: 1px solid #e5e7eb; border-radius: 8px;
-      font-size: 14px; outline: none; background: #f9fafb;
-    }
-    .search-bar:focus { border-color: var(--section-color, #1a6fd4); background: #fff; }
-    .gantt-toggle { display: flex; gap: 0; background: #f3f4f6; border-radius: 8px; padding: 2px; }
-    .gantt-toggle button {
-      flex: 1; padding: 6px; border: none; background: transparent;
-      border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; color: #6b7280;
-    }
-    .gantt-toggle button.active { background: #fff; color: #111827; font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .btn-add { color: #fff; border: none; border-radius: 20px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .search-bar { width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; outline: none; background: #f9fafb; }
+    .gantt-toggle { display: flex; background: #f3f4f6; border-radius: 8px; padding: 2px; gap: 2px; }
+    .gantt-toggle button { flex: 1; padding: 6px; border: none; background: transparent; border-radius: 6px; font-size: 13px; cursor: pointer; color: #6b7280; }
+    .gantt-toggle button.active { background: #fff; color: #111827; font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
 
-    /* Nav */
-    .nav {
-      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: 420px;
-      background: #fff; border-top: 1px solid #e5e7eb;
-      display: flex; z-index: 200; padding: 4px 0 6px;
-    }
-    .nav-item {
-      flex: 1; display: flex; flex-direction: column; align-items: center;
-      gap: 2px; cursor: pointer; padding: 4px 0; position: relative;
-      min-height: 44px; justify-content: center;
-    }
-    .nav-item .nav-icon { font-size: 18px; filter: grayscale(1) opacity(0.45); line-height: 1; }
-    .nav-item .nav-label { font-size: 9px; color: #9ca3af; font-weight: 500; }
+    .nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 420px; background: #fff; border-top: 1px solid #e5e7eb; display: flex; z-index: 200; padding: 4px 0 6px; }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 4px 0; position: relative; min-height: 44px; justify-content: center; }
+    .nav-icon { font-size: 18px; filter: grayscale(1) opacity(.45); line-height: 1; }
+    .nav-label { font-size: 9px; color: #9ca3af; font-weight: 500; }
     .nav-item.active .nav-icon { filter: none; }
     .nav-item.active .nav-label { color: #111827; font-weight: 700; }
-    .nav-item.active::after {
-      content: ''; position: absolute; top: 0; left: 15%; right: 15%;
-      height: 3px; border-radius: 0 0 3px 3px;
-      background: var(--active-color, #1a6fd4);
-    }
+    .nav-item.active::after { content: ''; position: absolute; top: 0; left: 15%; right: 15%; height: 3px; border-radius: 0 0 3px 3px; background: var(--ac); }
 
-    /* Content */
     .content { padding: 12px 12px 80px; }
 
-    /* Card */
-    .card {
-      background: #fff; border-radius: 10px; padding: 12px 14px;
-      margin-bottom: 10px; border: 1px solid #e5e7eb;
-    }
+    .card { background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #e5e7eb; }
     .card-link { border: 1.5px solid #7c3aed; }
     .card-title { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 4px; }
     .card-title a { color: #7c3aed; text-decoration: none; }
-    .card-meta { font-size: 12px; color: #6b7280; margin-bottom: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
-    .card-url { font-size: 11px; color: #6b7280; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card-meta { font-size: 12px; color: #6b7280; margin-bottom: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .card-url { font-size: 11px; color: #6b7280; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
     .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
-    .tag {
-      padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
-      background: #e5e7eb; color: #374151;
-    }
+    .tag { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
     .card-actions { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; }
-    .btn-del {
-      background: none; border: none; color: #ef4444; font-size: 12px;
-      cursor: pointer; padding: 4px 8px; border-radius: 6px;
-    }
-    .btn-del:hover { background: #fef2f2; }
+    .btn-del { background: none; border: none; color: #ef4444; font-size: 12px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
 
-    /* Badge */
-    .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
-    }
-    .badge-green { background: #dcfce7; color: #16a34a; }
-    .badge-gray { background: #f3f4f6; color: #6b7280; }
-    .badge-blue { background: #dbeafe; color: #1a6fd4; }
-    .badge-amber { background: #fef3c7; color: #d97706; }
-    .badge-red { background: #fee2e2; color: #dc2626; }
-    .badge-purple { background: #ede9fe; color: #7c3aed; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .b-green { background:#dcfce7; color:#16a34a; }
+    .b-gray  { background:#f3f4f6; color:#6b7280; }
+    .b-blue  { background:#dbeafe; color:#1a6fd4; }
+    .b-amber { background:#fef3c7; color:#d97706; }
+    .b-red   { background:#fee2e2; color:#dc2626; }
+    .b-purple{ background:#ede9fe; color:#7c3aed; }
 
-    /* Avatar */
-    .avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
-    }
+    .avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; flex-shrink:0; }
 
-    /* Summary cards */
-    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-    .summary-card {
-      background: #fff; border-radius: 10px; padding: 10px 12px;
-      border: 1px solid #e5e7eb;
-    }
-    .summary-card .sc-value { font-size: 22px; font-weight: 800; }
-    .summary-card .sc-label { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .sum-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+    .sum-card { background:#fff; border-radius:10px; padding:10px 12px; border:1px solid #e5e7eb; }
+    .sum-val  { font-size:22px; font-weight:800; }
+    .sum-lbl  { font-size:11px; color:#6b7280; margin-top:2px; }
 
-    /* Progress bar */
-    .progress-track { background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden; margin: 6px 0; }
-    .progress-bar { height: 100%; border-radius: 4px; transition: width 0.3s; }
-    .progress-green { background: #16a34a; }
-    .progress-amber { background: #d97706; }
-    .progress-red { background: #dc2626; }
+    .ptrack { background:#e5e7eb; border-radius:4px; height:8px; overflow:hidden; margin:6px 0; }
+    .pbar   { height:100%; border-radius:4px; }
 
-    /* People card */
-    .people-card { background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #e5e7eb; }
-    .people-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .people-info { flex: 1; min-width: 0; }
-    .people-name { font-size: 14px; font-weight: 700; color: #111827; }
-    .people-role { font-size: 11px; color: #6b7280; }
-    .people-pct { font-size: 16px; font-weight: 800; }
-    .warn-tag { font-size: 11px; padding: 3px 8px; border-radius: 6px; display: inline-block; margin-top: 4px; }
-    .warn-red { background: #fee2e2; color: #dc2626; }
-    .warn-amber { background: #fef3c7; color: #d97706; }
-    .project-chip { font-size: 11px; color: #374151; padding: 2px 0; border-bottom: 1px solid #f3f4f6; }
+    .pcard  { background:#fff; border-radius:10px; padding:12px 14px; margin-bottom:10px; border:1px solid #e5e7eb; }
+    .ph     { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .pname  { font-size:14px; font-weight:700; color:#111827; }
+    .prole  { font-size:11px; color:#6b7280; }
+    .ppct   { font-size:16px; font-weight:800; }
+    .wtag   { font-size:11px; padding:3px 8px; border-radius:6px; display:inline-block; margin-top:4px; }
+    .wred   { background:#fee2e2; color:#dc2626; }
+    .wamber { background:#fef3c7; color:#d97706; }
+    .pchip  { font-size:11px; color:#374151; padding:2px 0; border-bottom:1px solid #f3f4f6; }
 
-    /* Gantt */
-    .gantt-wrap { overflow-x: auto; background: #fff; border-radius: 10px; border: 1px solid #e5e7eb; padding: 8px 0; }
-    .gantt-wrap svg { display: block; }
+    .gantt-wrap { overflow-x:auto; background:#fff; border-radius:10px; border:1px solid #e5e7eb; padding:8px 0; }
+    .dl-section { margin-top:12px; }
+    .dl-section h3 { font-size:13px; font-weight:700; color:#374151; margin-bottom:8px; }
+    .dl-item { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f3f4f6; }
+    .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 
-    /* Deadline list */
-    .deadline-section { margin-top: 12px; }
-    .deadline-section h3 { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 8px; }
-    .deadline-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f3f4f6; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .dot-green { background: #16a34a; }
-    .dot-amber { background: #d97706; }
-    .dot-red { background: #dc2626; }
-    .deadline-name { font-size: 13px; color: #111827; flex: 1; }
-    .deadline-date { font-size: 11px; color: #6b7280; }
+    .overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:300; display:flex; align-items:flex-end; justify-content:center; }
+    .modal { background:#fff; width:100%; max-width:420px; border-radius:16px 16px 0 0; padding:20px 16px; max-height:85vh; overflow-y:auto; }
+    .modal-handle { width:36px; height:4px; background:#d1d5db; border-radius:2px; margin:0 auto 16px; }
+    .modal h2 { font-size:17px; font-weight:700; color:#111827; margin-bottom:16px; }
+    .field { margin-bottom:12px; }
+    .field label { font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px; }
+    .field input, .field select, .field textarea { width:100%; padding:9px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; font-family:inherit; outline:none; background:#fff; }
+    .field textarea { resize:vertical; min-height:80px; }
+    .field-check { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:#374151; }
+    .field-check input { width:18px; height:18px; cursor:pointer; }
+    .btn-save { width:100%; padding:12px; border:none; border-radius:10px; color:#fff; font-size:15px; font-weight:700; cursor:pointer; margin-top:4px; margin-bottom:8px; }
 
-    /* Modal */
-    .overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
-      z-index: 300; display: flex; align-items: flex-end; justify-content: center;
-    }
-    .modal {
-      background: #fff; width: 100%; max-width: 420px;
-      border-radius: 16px 16px 0 0; padding: 20px 16px;
-      max-height: 85vh; overflow-y: auto;
-    }
-    .modal-handle { width: 36px; height: 4px; background: #d1d5db; border-radius: 2px; margin: 0 auto 16px; }
-    .modal h2 { font-size: 17px; font-weight: 700; color: #111827; margin-bottom: 16px; }
-    .field { margin-bottom: 12px; }
-    .field label { font-size: 12px; font-weight: 600; color: #374151; display: block; margin-bottom: 4px; }
-    .field input, .field select, .field textarea {
-      width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 8px;
-      font-size: 14px; font-family: inherit; outline: none; background: #fff;
-    }
-    .field input:focus, .field select:focus, .field textarea:focus {
-      border-color: var(--section-color, #1a6fd4);
-    }
-    .field textarea { resize: vertical; min-height: 80px; }
-    .field-check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .field-check input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; }
-    .btn-save {
-      width: 100%; padding: 12px; border: none; border-radius: 10px;
-      background: var(--section-color, #1a6fd4); color: #fff;
-      font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 4px;
-    }
+    .toast { position:fixed; top:16px; left:50%; transform:translateX(-50%); padding:10px 18px; border-radius:10px; color:#fff; font-size:13px; font-weight:600; z-index:500; box-shadow:0 4px 12px rgba(0,0,0,.2); white-space:nowrap; animation:sd .25s ease; }
+    @keyframes sd { from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)} }
 
-    /* Toast */
-    .toast {
-      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-      padding: 10px 18px; border-radius: 10px; color: #fff;
-      font-size: 13px; font-weight: 600; z-index: 500;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2); white-space: nowrap;
-      animation: slideDown 0.25s ease;
-    }
-    @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    .vcard { border-radius:10px; padding:14px; margin-bottom:12px; }
+    .vtitle { font-size:18px; font-weight:800; margin-bottom:4px; }
+    .vscore { font-size:13px; margin-bottom:10px; }
+    .vsumm  { font-size:13px; line-height:1.5; }
+    .aissue { background:#fee2e2; color:#991b1b; border-radius:6px; padding:6px 10px; font-size:12px; margin-bottom:5px; }
+    .arec   { background:#e0f2fe; color:#0c4a6e; border-radius:6px; padding:6px 10px; font-size:12px; margin-bottom:5px; }
+    .astitle{ font-size:12px; font-weight:700; color:#374151; margin:10px 0 6px; }
+    .rcard  { background:#f3f4f6; border-radius:8px; padding:8px 12px; font-size:13px; color:#374151; margin-bottom:8px; }
+    .api-note { font-size:11px; color:#9ca3af; margin-top:4px; }
 
-    /* AI Result */
-    .verdict-card {
-      border-radius: 10px; padding: 14px; margin-bottom: 12px;
-    }
-    .verdict-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
-    .verdict-score { font-size: 13px; margin-bottom: 10px; }
-    .verdict-summary { font-size: 13px; line-height: 1.5; }
-    .ai-issue { background: #fee2e2; color: #991b1b; border-radius: 6px; padding: 6px 10px; font-size: 12px; margin-bottom: 5px; }
-    .ai-rec { background: #e0f2fe; color: #0c4a6e; border-radius: 6px; padding: 6px 10px; font-size: 12px; margin-bottom: 5px; }
-    .ai-section-title { font-size: 12px; font-weight: 700; color: #374151; margin: 10px 0 6px; }
-    .resp-card { background: #f3f4f6; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #374151; margin-bottom: 8px; }
+    .dept-card { display:flex; align-items:flex-start; gap:10px; }
+    .dept-icon { font-size:28px; }
 
-    /* API key field */
-    .api-note { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+    .empty { text-align:center; padding:40px 20px; color:#9ca3af; font-size:14px; }
+    .empty-icon { font-size:36px; margin-bottom:8px; }
 
-    /* Dept card */
-    .dept-card { display: flex; align-items: flex-start; gap: 10px; }
-    .dept-icon { font-size: 28px; }
-    .dept-info { flex: 1; }
-    .dept-name { font-size: 14px; font-weight: 700; color: #111827; }
-    .dept-head { font-size: 12px; color: #6b7280; margin-top: 2px; }
-    .dept-counters { font-size: 12px; color: #374151; margin-top: 6px; }
-
-    /* Empty */
-    .empty { text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 14px; }
-    .empty-icon { font-size: 36px; margin-bottom: 8px; }
-
-    /* Loading spinner */
-    .spinner {
-      display: inline-block; width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
-      border-radius: 50%; animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .checking-row { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 16px; color: #6b7280; font-size: 14px; }
-    .check-spinner { width: 20px; height: 20px; border: 2px solid #e5e7eb; border-top-color: #1a6fd4; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .spinner { display:inline-block; width:18px; height:18px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; }
+    .cspinner { width:20px; height:20px; border:2px solid #e5e7eb; border-top-color:#1a6fd4; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .checking { display:flex; align-items:center; justify-content:center; gap:8px; padding:16px; color:#6b7280; font-size:14px; }
   </style>
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel">
-const { useState, useMemo, useEffect, useRef } = React;
+<script type="module">
+import { h, render, Component } from 'https://esm.sh/preact@10.22.0';
+import { useState, useMemo, useEffect, useRef } from 'https://esm.sh/preact@10.22.0/hooks';
 
-// ── Tag colours ──────────────────────────────────────────────────
 const TAG_COLORS = {
-  'ИБ':        { bg: '#fee2e2', color: '#991b1b' },
-  'Политика':  { bg: '#ede9fe', color: '#6d28d9' },
-  'Основной':  { bg: '#dbeafe', color: '#1e40af' },
-  'PMO':       { bg: '#d1fae5', color: '#065f46' },
-  'ITSM':      { bg: '#fef3c7', color: '#92400e' },
-  'Ссылка':    { bg: '#ede9fe', color: '#7c3aed' },
-  'Загружено': { bg: '#e0f2fe', color: '#075985' },
+  'ИБ':{'bg':'#fee2e2','color':'#991b1b'},'Политика':{'bg':'#ede9fe','color':'#6d28d9'},
+  'Основной':{'bg':'#dbeafe','color':'#1e40af'},'PMO':{'bg':'#d1fae5','color':'#065f46'},
+  'ITSM':{'bg':'#fef3c7','color':'#92400e'},'Ссылка':{'bg':'#ede9fe','color':'#7c3aed'},
+  'Загружено':{'bg':'#e0f2fe','color':'#075985'},
 };
-function tagStyle(t) {
-  return TAG_COLORS[t] || { bg: '#e5e7eb', color: '#374151' };
-}
+const tagStyle = t => TAG_COLORS[t] || {bg:'#e5e7eb',color:'#374151'};
 
-// ── Avatar colours ───────────────────────────────────────────────
-const AVATAR_COLORS = ['#1a6fd4','#7c3aed','#0f7a5a','#b45309','#be185d','#0e7490','#dc2626'];
-function avatarColor(name, i) {
-  return AVATAR_COLORS[(name.charCodeAt(0) + (i||0)) % AVATAR_COLORS.length];
-}
-function initials(name) {
-  const p = (name||'').trim().split(' ');
-  return (p[0]?.[0]||'') + (p[1]?.[0]||'');
-}
+const AV_COLORS = ['#1a6fd4','#7c3aed','#0f7a5a','#b45309','#be185d','#0e7490','#16a34a'];
+const avatarColor = (name,i=0) => AV_COLORS[(name.charCodeAt(0)+(i||0)) % AV_COLORS.length];
+const initials = name => { const p=(name||'').trim().split(' '); return (p[0]?.[0]||'')+(p[1]?.[0]||''); };
 
-// ── Initial data ─────────────────────────────────────────────────
-const INIT_DOCS = [
-  { id: 1, name: 'Политика ИБ v2.3', size: '1.2 МБ', date: '15.03.2026', tags: ['ИБ', 'Политика', 'Загружено'] },
-  { id: 2, name: 'Регламент PMO', size: '840 КБ', date: '20.04.2026', tags: ['PMO', 'Загружено'] },
-  { id: 3, name: 'Wiki — ITSM процессы', size: '—', date: '01.06.2026', tags: ['ITSM', 'Ссылка'], type: 'link', url: 'https://wiki.example.com/itsm' },
-];
-const INIT_REGS = [
-  { id: 1, name: 'Регламент управления проектами', date: '10.01.2026', status: 'Действует', tags: ['PMO'] },
-  { id: 2, name: 'Регламент информационной безопасности', date: '05.03.2026', status: 'Действует', tags: ['ИБ'] },
-  { id: 3, name: 'Регламент ITSM v1', date: '01.09.2025', status: 'Архив', tags: ['ITSM'] },
-  { id: 4, name: 'Регламент HR-процессов', date: '15.06.2026', status: 'Разработка', tags: [] },
-];
-const INIT_PEOPLE = [
-  { id: 1, name: 'Иванов Алексей', role: 'Руководитель ЦУ', dept: 'ЦУ', hasJob: true, capacity: 160 },
-  { id: 2, name: 'Петрова Мария', role: 'Менеджер проектов', dept: 'Разработка', hasJob: true, capacity: 160 },
-  { id: 3, name: 'Сидоров Дмитрий', role: 'Системный аналитик', dept: 'Разработка', hasJob: false, capacity: 160 },
-  { id: 4, name: 'Козлова Анна', role: 'DevOps инженер', dept: 'Обслуживание', hasJob: true, capacity: 160 },
-  { id: 5, name: 'Новиков Игорь', role: 'HR-специалист', dept: 'ЦУ', hasJob: false, capacity: 120 },
-];
-const INIT_PROJECTS = [
-  { id: 1, name: 'Миграция на облако', status: 'В работе', dept: 'Разработка', lead: 'Петрова Мария', deadline: '2026-09-30', start: '2026-04-01', hours: 240 },
-  { id: 2, name: 'Внедрение ITSM', status: 'В работе', dept: 'Обслуживание', lead: 'Козлова Анна', deadline: '2026-07-15', start: '2026-03-01', hours: 180 },
-  { id: 3, name: 'Обновление ИБ-систем', status: 'Планируется', dept: 'ЦУ', lead: 'Иванов Алексей', deadline: '2026-12-31', start: '2026-08-01', hours: 120 },
-  { id: 4, name: 'Разработка портала', status: 'В работе', dept: 'Разработка', lead: 'Петрова Мария', deadline: '2026-08-01', start: '2026-05-01', hours: 200 },
-  { id: 5, name: 'Аудит процессов', status: 'Завершён', dept: 'ЦУ', lead: 'Иванов Алексей', deadline: '2026-05-01', start: '2026-02-01', hours: 80 },
-];
-const INIT_DEPTS = [
-  { id: 1, name: 'Центральное управление', head: 'Иванов Алексей', staff: 2, projects: 2 },
-  { id: 2, name: 'Разработка', head: 'Петрова Мария', staff: 2, projects: 2 },
-  { id: 3, name: 'Обслуживание', head: 'Козлова Анна', staff: 1, projects: 1 },
-];
-
-// ── Sections config ──────────────────────────────────────────────
 const SECTIONS = [
-  { id: 'docs',   icon: '📄', label: 'Документы', color: '#1a6fd4' },
-  { id: 'regs',   icon: '📋', label: 'Регламенты', color: '#0f7a5a' },
-  { id: 'proj',   icon: '🗂',  label: 'Проекты', color: '#7c3aed' },
-  { id: 'dept',   icon: '🏢', label: 'Департам.', color: '#b45309' },
-  { id: 'people', icon: '👤', label: 'Сотрудники', color: '#be185d' },
-  { id: 'load',   icon: '📊', label: 'Нагрузка', color: '#0e7490' },
-  { id: 'check',  icon: '✅', label: 'Проверка', color: '#16a34a' },
+  {id:'docs',  icon:'📄',label:'Документы', color:'#1a6fd4'},
+  {id:'regs',  icon:'📋',label:'Регламенты',color:'#0f7a5a'},
+  {id:'proj',  icon:'🗂', label:'Проекты',   color:'#7c3aed'},
+  {id:'dept',  icon:'🏢',label:'Департам.', color:'#b45309'},
+  {id:'people',icon:'👤',label:'Сотрудники',color:'#be185d'},
+  {id:'load',  icon:'📊',label:'Нагрузка',  color:'#0e7490'},
+  {id:'check', icon:'✅',label:'Проверка',  color:'#16a34a'},
 ];
 
-// ── Toast ────────────────────────────────────────────────────────
-function Toast({ msg, type }) {
-  if (!msg) return null;
-  return (
-    <div className="toast" style={{ background: type === 'info' ? '#374151' : '#1a6fd4' }}>
-      {msg}
-    </div>
-  );
+const INIT_DOCS=[
+  {id:1,name:'Политика ИБ v2.3',size:'1.2 МБ',date:'15.03.2026',tags:['ИБ','Политика','Загружено']},
+  {id:2,name:'Регламент PMO',size:'840 КБ',date:'20.04.2026',tags:['PMO','Загружено']},
+  {id:3,name:'Wiki — ITSM процессы',size:'—',date:'01.06.2026',tags:['ITSM','Ссылка'],type:'link',url:'https://wiki.example.com/itsm'},
+];
+const INIT_REGS=[
+  {id:1,name:'Регламент управления проектами',date:'10.01.2026',status:'Действует',tags:['PMO']},
+  {id:2,name:'Регламент информационной безопасности',date:'05.03.2026',status:'Действует',tags:['ИБ']},
+  {id:3,name:'Регламент ITSM v1',date:'01.09.2025',status:'Архив',tags:['ITSM']},
+  {id:4,name:'Регламент HR-процессов',date:'15.06.2026',status:'Разработка',tags:[]},
+];
+const INIT_PEOPLE=[
+  {id:1,name:'Иванов Алексей',role:'Руководитель ЦУ',dept:'ЦУ',hasJob:true,capacity:160},
+  {id:2,name:'Петрова Мария',role:'Менеджер проектов',dept:'Разработка',hasJob:true,capacity:160},
+  {id:3,name:'Сидоров Дмитрий',role:'Системный аналитик',dept:'Разработка',hasJob:false,capacity:160},
+  {id:4,name:'Козлова Анна',role:'DevOps инженер',dept:'Обслуживание',hasJob:true,capacity:160},
+  {id:5,name:'Новиков Игорь',role:'HR-специалист',dept:'ЦУ',hasJob:false,capacity:120},
+];
+const INIT_PROJECTS=[
+  {id:1,name:'Миграция на облако',status:'В работе',dept:'Разработка',lead:'Петрова Мария',deadline:'2026-09-30',start:'2026-04-01',hours:240},
+  {id:2,name:'Внедрение ITSM',status:'В работе',dept:'Обслуживание',lead:'Козлова Анна',deadline:'2026-07-15',start:'2026-03-01',hours:180},
+  {id:3,name:'Обновление ИБ-систем',status:'Планируется',dept:'ЦУ',lead:'Иванов Алексей',deadline:'2026-12-31',start:'2026-08-01',hours:120},
+  {id:4,name:'Разработка портала',status:'В работе',dept:'Разработка',lead:'Петрова Мария',deadline:'2026-08-01',start:'2026-05-01',hours:200},
+  {id:5,name:'Аудит процессов',status:'Завершён',dept:'ЦУ',lead:'Иванов Алексей',deadline:'2026-05-01',start:'2026-02-01',hours:80},
+];
+const INIT_DEPTS=[
+  {id:1,name:'Центральное управление',head:'Иванов Алексей',staff:2,projects:2},
+  {id:2,name:'Разработка',head:'Петрова Мария',staff:2,projects:2},
+  {id:3,name:'Обслуживание',head:'Козлова Анна',staff:1,projects:1},
+];
+
+// ── helpers ─────────────────────────────────────────────────────
+const e = h; // alias
+
+function Badge({status}) {
+  const map = {'Действует':'b-green','В работе':'b-blue','Завершён':'b-green','Планируется':'b-gray','Архив':'b-gray','Разработка':'b-amber'};
+  return h('span',{class:`badge ${map[status]||'b-gray'}`},status);
 }
 
-// ── Status badge helpers ─────────────────────────────────────────
-function StatusBadge({ status }) {
-  const cls = {
-    'Действует': 'badge-green', 'В работе': 'badge-blue',
-    'Завершён': 'badge-green', 'Планируется': 'badge-gray',
-    'Архив': 'badge-gray', 'Разработка': 'badge-amber',
-  }[status] || 'badge-gray';
-  return <span className={`badge ${cls}`}>{status}</span>;
+function Empty({icon,text}){
+  return h('div',{class:'empty'},[h('div',{class:'empty-icon'},icon),h('div',null,text)]);
 }
 
-// ── Main App ─────────────────────────────────────────────────────
-function App() {
-  const [section, setSection] = useState('docs');
-  const [docs, setDocs]       = useState(INIT_DOCS);
-  const [regs, setRegs]       = useState(INIT_REGS);
-  const [projects, setProjects] = useState(INIT_PROJECTS);
-  const [depts, setDepts]     = useState(INIT_DEPTS);
-  const [people, setPeople]   = useState(INIT_PEOPLE);
-  const [search, setSearch]   = useState('');
-  const [modal, setModal]     = useState(null);   // section id
-  const [toast, setToast]     = useState(null);
-  const [ganttMode, setGanttMode] = useState('gantt');
-  const [apiKey, setApiKey]   = useState('');
-  const [aiResult, setAiResult] = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [checkText, setCheckText] = useState('');
-  const [modalType, setModalType] = useState(null); // 'file' | 'link' | null
+function Toast({msg,type}){
+  if(!msg) return null;
+  return h('div',{class:'toast',style:{background:type==='info'?'#374151':'#1a6fd4'}},msg);
+}
 
-  const toastTimeout = useRef(null);
-  function showToast(msg, type = 'success') {
-    setToast({ msg, type });
-    clearTimeout(toastTimeout.current);
-    toastTimeout.current = setTimeout(() => setToast(null), 2800);
+// ── Tags render ─────────────────────────────────────────────────
+function Tags({tags}){
+  return h('div',{class:'tags'},tags.map(t=>{
+    const s=tagStyle(t);
+    return h('span',{class:'tag',style:{background:s.bg,color:s.color},key:t},t);
+  }));
+}
+
+// ── App ─────────────────────────────────────────────────────────
+function App(){
+  const [section,setSection]=useState('docs');
+  const [docs,setDocs]=useState(INIT_DOCS);
+  const [regs,setRegs]=useState(INIT_REGS);
+  const [projects,setProjects]=useState(INIT_PROJECTS);
+  const [depts,setDepts]=useState(INIT_DEPTS);
+  const [people,setPeople]=useState(INIT_PEOPLE);
+  const [search,setSearch]=useState('');
+  const [modal,setModal]=useState(null);
+  const [toast,setToast]=useState(null);
+  const [ganttMode,setGanttMode]=useState('gantt');
+  const [apiKey,setApiKey]=useState('');
+  const [aiResult,setAiResult]=useState(null);
+  const [aiLoading,setAiLoading]=useState(false);
+  const [checkText,setCheckText]=useState('');
+  const toastTm=useRef(null);
+
+  useEffect(()=>{setSearch('');},[section]);
+
+  function showToast(msg,type='success'){
+    setToast({msg,type});
+    clearTimeout(toastTm.current);
+    toastTm.current=setTimeout(()=>setToast(null),2800);
   }
 
-  const cur = SECTIONS.find(s => s.id === section);
+  const cur=SECTIONS.find(s=>s.id===section);
 
-  // Reset search when section changes
-  useEffect(() => { setSearch(''); }, [section]);
+  // workload
+  const loads=useMemo(()=>people.map(person=>{
+    const assigned=projects.filter(p=>p.lead===person.name);
+    const totalHours=assigned.reduce((s,p)=>s+(p.hours||0),0);
+    const capacity=person.capacity||160;
+    const pct=Math.min(Math.round((totalHours/capacity)*100),150);
+    return {...person,totalHours,capacity,pct,assigned};
+  }),[people,projects]);
 
-  // ── Document handlers ───────────────────────────────────────────
-  function handleFileDrop(files) {
-    const newDocs = Array.from(files).map((f, i) => ({
-      id: Date.now() + i,
-      name: f.name,
-      size: f.size >= 1048576 ? (f.size/1048576).toFixed(1)+' МБ' : Math.round(f.size/1024)+' КБ',
-      date: new Date().toLocaleDateString('ru'),
-      tags: ['Загружено'],
-    }));
-    setDocs(d => [...newDocs, ...d]);
-    showToast(`Загружено файлов: ${newDocs.length}`);
-  }
-
-  function addLink(data) {
-    const url = data.url.startsWith('http') ? data.url : 'https://' + data.url;
-    const tags = (data.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
-    if (!tags.includes('Ссылка')) tags.push('Ссылка');
-    setDocs(d => [{ id: Date.now(), name: data.name||url, size: '—', date: new Date().toLocaleDateString('ru'), tags, type: 'link', url }, ...d]);
-    showToast('Ссылка добавлена');
-  }
-
-  function delDoc(id) { setDocs(d => d.filter(x => x.id !== id)); showToast('Удалено', 'info'); }
-  function delReg(id) { setRegs(r => r.filter(x => x.id !== id)); showToast('Удалено', 'info'); }
-  function delProj(id) { setProjects(p => p.filter(x => x.id !== id)); showToast('Удалено', 'info'); }
-  function delDept(id) { setDepts(d => d.filter(x => x.id !== id)); showToast('Удалено', 'info'); }
-  function delPerson(id) { setPeople(p => p.filter(x => x.id !== id)); showToast('Удалено', 'info'); }
-
-  // ── Workload calc ───────────────────────────────────────────────
-  const loads = useMemo(() => people.map(person => {
-    const assigned = projects.filter(p => p.lead === person.name);
-    const totalHours = assigned.reduce((s, p) => s + (p.hours||0), 0);
-    const capacity = person.capacity || 160;
-    const pct = Math.min(Math.round((totalHours / capacity) * 100), 150);
-    return { ...person, totalHours, capacity, pct, assigned };
-  }), [people, projects]);
-
-  const avgLoad = loads.length ? Math.round(loads.reduce((s,l) => s + l.pct, 0) / loads.length) : 0;
-  const overloaded = loads.filter(l => l.pct >= 110).length;
-  const soonDeadline = projects.filter(p => {
-    if (p.status === 'Завершён') return false;
-    const d = new Date(p.deadline);
-    const diff = (d - new Date()) / 86400000;
-    return diff >= 0 && diff <= 30;
+  const avgLoad=loads.length?Math.round(loads.reduce((s,l)=>s+l.pct,0)/loads.length):0;
+  const overloaded=loads.filter(l=>l.pct>=110).length;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const soonDeadline=projects.filter(p=>{
+    if(p.status==='Завершён') return false;
+    const d=new Date(p.deadline);
+    const diff=(d-today)/86400000;
+    return diff>=0&&diff<=30;
   }).length;
 
-  // ── AI check ───────────────────────────────────────────────────
-  async function runCheck() {
-    if (!checkText.trim()) return;
+  // add handlers
+  function addLink(data){
+    const url=data.url.startsWith('http')?data.url:'https://'+data.url;
+    const tags=(data.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
+    if(!tags.includes('Ссылка')) tags.push('Ссылка');
+    setDocs(d=>[{id:Date.now(),name:data.name||url,size:'—',date:new Date().toLocaleDateString('ru'),tags,type:'link',url},...d]);
+    showToast('Ссылка добавлена');
+  }
+  function handleFiles(files){
+    const nd=Array.from(files).map((f,i)=>({
+      id:Date.now()+i,name:f.name,
+      size:f.size>=1048576?(f.size/1048576).toFixed(1)+' МБ':Math.round(f.size/1024)+' КБ',
+      date:new Date().toLocaleDateString('ru'),tags:['Загружено'],
+    }));
+    setDocs(d=>[...nd,...d]);
+    showToast(`Загружено: ${nd.length} файл(ов)`);
+  }
+
+  // ai check
+  async function runCheck(){
+    if(!checkText.trim()) return;
     setAiLoading(true); setAiResult(null);
-    const context = `ПРОЕКТЫ:\n${projects.map(p=>`${p.name} (${p.dept}, рук: ${p.lead}, ${p.status})`).join('\n')}\n\nДЕПАРТАМЕНТЫ:\n${depts.map(d=>`${d.name} (рук: ${d.head}, ${d.staff} чел.)`).join('\n')}\n\nСОТРУДНИКИ:\n${people.map(p=>`${p.name} — ${p.role} (${p.dept}), ДИ: ${p.hasJob?'есть':'нет'}`).join('\n')}\n\nРЕГЛАМЕНТЫ:\n${regs.map(r=>`${r.name} (${r.status})`).join('\n')}\n\nДОКУМЕНТЫ:\n${docs.map(d=>d.name).join('\n')}`;
-    const sysPrompt = `Ты — ИИ-аналитик системы управления проектами. Проанализируй задачу/назначение на соответствие базе знаний организации.\n\nБАЗА ЗНАНИЙ:\n${context}\n\nОтветь строго в формате JSON (без markdown-блоков):\n{"verdict":"соответствует"|"не соответствует"|"частично соответствует","score":0-100,"summary":"1-2 предложения","responsible":"ФИО и роль или пусто","issues":["..."],"recommendations":["..."]}`;
-    try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
-          system: sysPrompt,
-          messages: [{ role: 'user', content: checkText }],
-        }),
+    const ctx=`ПРОЕКТЫ:\n${projects.map(p=>`${p.name} (${p.dept}, рук: ${p.lead}, ${p.status})`).join('\n')}\n\nДЕПАРТАМЕНТЫ:\n${depts.map(d=>`${d.name} (рук: ${d.head}, ${d.staff} чел.)`).join('\n')}\n\nСОТРУДНИКИ:\n${people.map(p=>`${p.name} — ${p.role} (${p.dept}), ДИ: ${p.hasJob?'есть':'нет'}`).join('\n')}\n\nРЕГЛАМЕНТЫ:\n${regs.map(r=>`${r.name} (${r.status})`).join('\n')}\n\nДОКУМЕНТЫ:\n${docs.map(d=>d.name).join('\n')}`;
+    const sys=`Ты — ИИ-аналитик. Проанализируй задачу на соответствие базе знаний организации.\n\n${ctx}\n\nОтветь строго JSON без markdown:\n{"verdict":"соответствует"|"не соответствует"|"частично соответствует","score":0-100,"summary":"текст","responsible":"ФИО или пусто","issues":["..."],"recommendations":["..."]}`;
+    try{
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:[{role:'user',content:checkText}]}),
       });
-      const data = await resp.json();
-      let raw = data.content?.[0]?.text || '';
-      raw = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-      const result = JSON.parse(raw);
-      setAiResult(result);
-    } catch(e) {
-      setAiResult({ verdict: 'ошибка', score: 0, summary: 'Не удалось выполнить проверку. Проверьте API-ключ и подключение.', responsible: '', issues: [e.message], recommendations: ['Убедитесь, что API-ключ Anthropic введён корректно'] });
+      const data=await resp.json();
+      let raw=data.content?.[0]?.text||'';
+      raw=raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+      setAiResult(JSON.parse(raw));
+    }catch(err){
+      setAiResult({verdict:'ошибка',score:0,summary:'Не удалось выполнить проверку. Проверьте API-ключ.',responsible:'',issues:[String(err)],recommendations:['Убедитесь, что API-ключ Anthropic введён корректно']});
     }
     setAiLoading(false);
   }
 
-  // ── Filtered lists ──────────────────────────────────────────────
-  const q = search.toLowerCase();
-  const filteredDocs    = docs.filter(d => d.name.toLowerCase().includes(q) || d.tags.some(t=>t.toLowerCase().includes(q)));
-  const filteredRegs    = regs.filter(r => r.name.toLowerCase().includes(q) || r.status.toLowerCase().includes(q) || r.tags.some(t=>t.toLowerCase().includes(q)));
-  const filteredProj    = projects.filter(p => p.name.toLowerCase().includes(q) || p.dept.toLowerCase().includes(q) || p.lead.toLowerCase().includes(q) || p.status.toLowerCase().includes(q));
-  const filteredDepts   = depts.filter(d => d.name.toLowerCase().includes(q) || d.head.toLowerCase().includes(q));
-  const filteredPeople  = people.filter(p => p.name.toLowerCase().includes(q) || p.role.toLowerCase().includes(q) || p.dept.toLowerCase().includes(q));
+  // filtered
+  const q=search.toLowerCase();
+  const fDocs=docs.filter(d=>d.name.toLowerCase().includes(q)||d.tags.some(t=>t.toLowerCase().includes(q)));
+  const fRegs=regs.filter(r=>r.name.toLowerCase().includes(q)||r.status.toLowerCase().includes(q)||r.tags.some(t=>t.toLowerCase().includes(q)));
+  const fProj=projects.filter(p=>p.name.toLowerCase().includes(q)||p.dept.toLowerCase().includes(q)||p.lead.toLowerCase().includes(q)||p.status.toLowerCase().includes(q));
+  const fDepts=depts.filter(d=>d.name.toLowerCase().includes(q)||d.head.toLowerCase().includes(q));
+  const fPeople=people.filter(p=>p.name.toLowerCase().includes(q)||p.role.toLowerCase().includes(q)||p.dept.toLowerCase().includes(q));
 
-  // ── Header ──────────────────────────────────────────────────────
-  const counts = { docs: docs.length, regs: regs.length, proj: projects.length, dept: depts.length, people: people.length };
-  const hideAdd    = ['load','check'].includes(section);
-  const hideSearch = ['load','check'].includes(section);
+  const counts={docs:docs.length,regs:regs.length,proj:projects.length,dept:depts.length,people:people.length};
+  const hideExtra=['load','check'].includes(section);
 
-  function headerSubtitle() {
-    if (section === 'load') return ganttMode === 'gantt' ? 'Диаграмма Ганта' : 'Загрузка сотрудников';
-    if (section === 'check') return 'AI-анализ соответствия';
-    return `${counts[section] || 0} записей`;
+  function subtitle(){
+    if(section==='load') return ganttMode==='gantt'?'Диаграмма Ганта':'Загрузка сотрудников';
+    if(section==='check') return 'AI-анализ соответствия';
+    return `${counts[section]||0} записей`;
   }
 
-  function openAddModal(sec) {
-    if (sec === 'docs') { setModalType(null); setModal('docs-choose'); }
-    else { setModal(sec); }
+  function renderSection(){
+    if(section==='docs')   return h(DocsSection,{docs:fDocs,onDel:id=>{setDocs(d=>d.filter(x=>x.id!==id));showToast('Удалено','info');}});
+    if(section==='regs')   return h(RegsSection,{regs:fRegs,onDel:id=>{setRegs(r=>r.filter(x=>x.id!==id));showToast('Удалено','info');}});
+    if(section==='proj')   return h(ProjSection,{projects:fProj,onDel:id=>{setProjects(p=>p.filter(x=>x.id!==id));showToast('Удалено','info');}});
+    if(section==='dept')   return h(DeptSection,{depts:fDepts,onDel:id=>{setDepts(d=>d.filter(x=>x.id!==id));showToast('Удалено','info');}});
+    if(section==='people') return h(PeopleSection,{people:fPeople,onDel:id=>{setPeople(p=>p.filter(x=>x.id!==id));showToast('Удалено','info');}});
+    if(section==='load')   return h(LoadSection,{loads,projects,ganttMode,avgLoad,overloaded,soonDeadline,today});
+    if(section==='check')  return h(CheckSection,{checkText,setCheckText,apiKey,setApiKey,onRun:runCheck,aiLoading,aiResult});
   }
 
-  // ── Render sections ─────────────────────────────────────────────
-  function renderContent() {
-    if (section === 'docs')   return <DocsSection docs={filteredDocs} onDel={delDoc} onFile={handleFileDrop} />;
-    if (section === 'regs')   return <RegsSection regs={filteredRegs} onDel={delReg} />;
-    if (section === 'proj')   return <ProjSection projects={filteredProj} onDel={delProj} />;
-    if (section === 'dept')   return <DeptSection depts={filteredDepts} onDel={delDept} />;
-    if (section === 'people') return <PeopleSection people={filteredPeople} onDel={delPerson} />;
-    if (section === 'load')   return <LoadSection loads={loads} projects={projects} ganttMode={ganttMode} avgLoad={avgLoad} overloaded={overloaded} soonDeadline={soonDeadline} />;
-    if (section === 'check')  return <CheckSection checkText={checkText} setCheckText={setCheckText} apiKey={apiKey} setApiKey={setApiKey} onRun={runCheck} aiLoading={aiLoading} aiResult={aiResult} />;
+  function openAdd(){
+    if(section==='docs'){setModal('docs-choose');}
+    else setModal(section);
   }
 
-  return (
-    <div style={{ '--section-color': cur.color }}>
-      {/* Header */}
-      <div className="header">
-        <div className="header-top">
-          <div className="header-title">
-            <span className="icon">{cur.icon}</span>
-            <div>
-              <h1>{cur.label}</h1>
-              <div className="header-subtitle">{headerSubtitle()}</div>
-            </div>
-          </div>
-          {section === 'load' && (
-            <div className="gantt-toggle">
-              <button className={ganttMode==='gantt'?'active':''} onClick={()=>setGanttMode('gantt')}>Гант</button>
-              <button className={ganttMode==='people'?'active':''} onClick={()=>setGanttMode('people')}>Люди</button>
-            </div>
-          )}
-          {!hideAdd && (
-            <button className="btn-add" onClick={()=>openAddModal(section)}>+ Добавить</button>
-          )}
-        </div>
-        {!hideSearch && (
-          <input className="search-bar" placeholder="Поиск…" value={search} onChange={e=>setSearch(e.target.value)} />
-        )}
-      </div>
+  return h('div',{style:{position:'relative'}},
+    // Header
+    h('div',{class:'header'},
+      h('div',{class:'header-top'},
+        h('div',{class:'header-title'},
+          h('span',{style:{fontSize:20}},cur.icon),
+          h('div',null,
+            h('h1',null,cur.label),
+            h('div',{class:'header-subtitle'},subtitle()),
+          ),
+        ),
+        section==='load'
+          ? h('div',{class:'gantt-toggle'},
+              h('button',{class:ganttMode==='gantt'?'active':'',onClick:()=>setGanttMode('gantt')},'Гант'),
+              h('button',{class:ganttMode==='people'?'active':'',onClick:()=>setGanttMode('people')},'Люди'),
+            )
+          : !hideExtra && h('button',{class:'btn-add',style:{background:cur.color},onClick:openAdd},'+ Добавить'),
+      ),
+      !hideExtra && h('input',{class:'search-bar',placeholder:'Поиск…',value:search,onInput:e=>setSearch(e.target.value)}),
+    ),
 
-      {/* Content */}
-      <div className="content">{renderContent()}</div>
+    // Content
+    h('div',{class:'content'},renderSection()),
 
-      {/* Bottom Nav */}
-      <nav className="nav">
-        {SECTIONS.map(s => (
-          <div key={s.id} className={`nav-item${section===s.id?' active':''}`}
-            style={{ '--active-color': s.color }}
-            onClick={()=>setSection(s.id)}>
-            <span className="nav-icon">{s.icon}</span>
-            <span className="nav-label">{s.label}</span>
-          </div>
-        ))}
-      </nav>
+    // Nav
+    h('nav',{class:'nav'},
+      SECTIONS.map(s=>
+        h('div',{key:s.id,class:`nav-item${section===s.id?' active':''}`,style:{'--ac':s.color},onClick:()=>setSection(s.id)},
+          h('span',{class:'nav-icon'},s.icon),
+          h('span',{class:'nav-label'},s.label),
+        )
+      )
+    ),
 
-      {/* Toast */}
-      {toast && <Toast msg={toast.msg} type={toast.type} />}
+    // Toast
+    toast && h(Toast,{msg:toast.msg,type:toast.type}),
 
-      {/* Modals */}
-      {modal === 'docs-choose' && (
-        <div className="overlay" onClick={()=>setModal(null)}>
-          <div className="modal" onClick={e=>e.stopPropagation()}>
-            <div className="modal-handle" />
-            <h2>Добавить</h2>
-            <button className="btn-save" style={{marginBottom:10,background:'#1a6fd4'}} onClick={()=>setModal('docs-file')}>📎 Загрузить файл</button>
-            <button className="btn-save" style={{background:'#7c3aed'}} onClick={()=>setModal('docs-link')}>🔗 Добавить ссылку</button>
-          </div>
-        </div>
-      )}
-      {modal === 'docs-file' && (
-        <FileModal onClose={()=>setModal(null)} onSave={files=>{handleFileDrop(files);setModal(null);}} />
-      )}
-      {modal === 'docs-link' && (
-        <LinkModal onClose={()=>setModal(null)} onSave={d=>{addLink(d);setModal(null);}} />
-      )}
-      {modal === 'regs' && (
-        <RegModal onClose={()=>setModal(null)} onSave={d=>{
-          setRegs(r=>[{id:Date.now(),...d,tags:(d.tags||'').split(',').map(t=>t.trim()).filter(Boolean)},...r]);
-          showToast('Регламент добавлен'); setModal(null);
-        }} />
-      )}
-      {modal === 'proj' && (
-        <ProjModal people={people} depts={depts} onClose={()=>setModal(null)} onSave={d=>{
-          setProjects(p=>[{id:Date.now(),...d,hours:Number(d.hours)||0},...p]);
-          showToast('Проект добавлен'); setModal(null);
-        }} />
-      )}
-      {modal === 'dept' && (
-        <DeptModal onClose={()=>setModal(null)} onSave={d=>{
-          setDepts(dep=>[{id:Date.now(),...d,staff:Number(d.staff)||0,projects:Number(d.projects)||0},...dep]);
-          showToast('Департамент добавлен'); setModal(null);
-        }} />
-      )}
-      {modal === 'people' && (
-        <PersonModal depts={depts} onClose={()=>setModal(null)} onSave={d=>{
-          setPeople(p=>[{id:Date.now(),...d,hasJob:!!d.hasJob,capacity:Number(d.capacity)||160},...p]);
-          showToast('Сотрудник добавлен'); setModal(null);
-        }} />
-      )}
-    </div>
+    // Modals
+    modal==='docs-choose' && h('div',{class:'overlay',onClick:()=>setModal(null)},
+      h('div',{class:'modal',onClick:e=>e.stopPropagation()},
+        h('div',{class:'modal-handle'}),
+        h('h2',null,'Добавить'),
+        h('button',{class:'btn-save',style:{background:'#1a6fd4'},onClick:()=>setModal('docs-file')},'📎 Загрузить файл'),
+        h('button',{class:'btn-save',style:{background:'#7c3aed'},onClick:()=>setModal('docs-link')},'🔗 Добавить ссылку'),
+      )
+    ),
+    modal==='docs-file' && h(FileModal,{onClose:()=>setModal(null),onSave:files=>{handleFiles(files);setModal(null);}}),
+    modal==='docs-link' && h(LinkModal,{onClose:()=>setModal(null),onSave:d=>{addLink(d);setModal(null);}}),
+    modal==='regs' && h(RegModal,{onClose:()=>setModal(null),onSave:d=>{
+      setRegs(r=>[{id:Date.now(),...d,tags:(d.tags||'').split(',').map(t=>t.trim()).filter(Boolean)},...r]);
+      showToast('Регламент добавлен');setModal(null);
+    }}),
+    modal==='proj' && h(ProjModal,{people,depts,onClose:()=>setModal(null),onSave:d=>{
+      setProjects(p=>[{id:Date.now(),...d,hours:Number(d.hours)||0},...p]);
+      showToast('Проект добавлен');setModal(null);
+    }}),
+    modal==='dept' && h(DeptModal,{onClose:()=>setModal(null),onSave:d=>{
+      setDepts(dep=>[{id:Date.now(),...d,staff:Number(d.staff)||0,projects:Number(d.projects)||0},...dep]);
+      showToast('Департамент добавлен');setModal(null);
+    }}),
+    modal==='people' && h(PersonModal,{depts,onClose:()=>setModal(null),onSave:d=>{
+      setPeople(p=>[{id:Date.now(),...d,hasJob:!!d.hasJob,capacity:Number(d.capacity)||160},...p]);
+      showToast('Сотрудник добавлен');setModal(null);
+    }}),
   );
 }
 
-// ── Section: Docs ────────────────────────────────────────────────
-function DocsSection({ docs, onDel }) {
-  return docs.length === 0 ? <Empty icon="📄" text="Нет документов" /> : docs.map(d => (
-    <div key={d.id} className={`card ${d.type==='link'?'card-link':''}`}>
-      <div className="card-title">
-        {d.type === 'link'
-          ? <><span>🔗 </span><a href={d.url} target="_blank" rel="noreferrer">{d.name}</a></>
-          : <><span>📄 </span>{d.name}</>
-        }
-      </div>
-      {d.type === 'link' && <div className="card-url">{d.url}</div>}
-      <div className="card-meta">
-        <span>{d.size}</span><span>·</span><span>{d.date}</span>
-      </div>
-      <div className="tags">
-        {d.tags.map(t => {
-          const s = tagStyle(t);
-          return <span key={t} className="tag" style={{background:s.bg,color:s.color}}>{t}</span>;
-        })}
-      </div>
-      <div className="card-actions">
-        <button className="btn-del" onClick={()=>onDel(d.id)}>Удалить</button>
-      </div>
-    </div>
+// ── Sections ────────────────────────────────────────────────────
+function DocsSection({docs,onDel}){
+  if(!docs.length) return h(Empty,{icon:'📄',text:'Нет документов'});
+  return h('div',null,docs.map(d=>
+    h('div',{key:d.id,class:`card${d.type==='link'?' card-link':''}`},
+      h('div',{class:'card-title'},
+        d.type==='link'
+          ? h('span',null,'🔗 ',h('a',{href:d.url,target:'_blank',rel:'noreferrer'},d.name))
+          : '📄 '+d.name
+      ),
+      d.type==='link' && h('div',{class:'card-url'},d.url),
+      h('div',{class:'card-meta'},h('span',null,d.size),' · ',h('span',null,d.date)),
+      h(Tags,{tags:d.tags}),
+      h('div',{class:'card-actions'},h('button',{class:'btn-del',onClick:()=>onDel(d.id)},'Удалить')),
+    )
   ));
 }
 
-// ── Section: Regs ────────────────────────────────────────────────
-function RegsSection({ regs, onDel }) {
-  return regs.length === 0 ? <Empty icon="📋" text="Нет регламентов" /> : regs.map(r => (
-    <div key={r.id} className="card">
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
-        <div className="card-title">{r.name}</div>
-        <StatusBadge status={r.status} />
-      </div>
-      <div className="card-meta"><span>{r.date}</span></div>
-      <div className="tags">
-        {r.tags.map(t => {
-          const s = tagStyle(t);
-          return <span key={t} className="tag" style={{background:s.bg,color:s.color}}>{t}</span>;
-        })}
-      </div>
-      <div className="card-actions">
-        <button className="btn-del" onClick={()=>onDel(r.id)}>Удалить</button>
-      </div>
-    </div>
+function RegsSection({regs,onDel}){
+  if(!regs.length) return h(Empty,{icon:'📋',text:'Нет регламентов'});
+  return h('div',null,regs.map(r=>
+    h('div',{key:r.id,class:'card'},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}},
+        h('div',{class:'card-title'},r.name),
+        h(Badge,{status:r.status}),
+      ),
+      h('div',{class:'card-meta'},r.date),
+      h(Tags,{tags:r.tags}),
+      h('div',{class:'card-actions'},h('button',{class:'btn-del',onClick:()=>onDel(r.id)},'Удалить')),
+    )
   ));
 }
 
-// ── Section: Projects ────────────────────────────────────────────
-function ProjSection({ projects, onDel }) {
-  return projects.length === 0 ? <Empty icon="🗂" text="Нет проектов" /> : projects.map(p => (
-    <div key={p.id} className="card">
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
-        <div className="card-title">{p.name}</div>
-        <StatusBadge status={p.status} />
-      </div>
-      <div className="card-meta">
-        <span>🏢 {p.dept}</span><span>·</span><span>👤 {p.lead}</span>
-      </div>
-      <div className="card-meta">
-        <span>🗓 {p.start} → {p.deadline}</span><span>·</span><span>⏱ {p.hours}ч</span>
-      </div>
-      <div className="card-actions">
-        <button className="btn-del" onClick={()=>onDel(p.id)}>Удалить</button>
-      </div>
-    </div>
+function ProjSection({projects,onDel}){
+  if(!projects.length) return h(Empty,{icon:'🗂',text:'Нет проектов'});
+  return h('div',null,projects.map(p=>
+    h('div',{key:p.id,class:'card'},
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}},
+        h('div',{class:'card-title'},p.name),
+        h(Badge,{status:p.status}),
+      ),
+      h('div',{class:'card-meta'},'🏢 '+p.dept,' · ','👤 '+p.lead),
+      h('div',{class:'card-meta'},'🗓 '+p.start+' → '+p.deadline,' · ','⏱ '+p.hours+'ч'),
+      h('div',{class:'card-actions'},h('button',{class:'btn-del',onClick:()=>onDel(p.id)},'Удалить')),
+    )
   ));
 }
 
-// ── Section: Departments ─────────────────────────────────────────
-function DeptSection({ depts, onDel }) {
-  return depts.length === 0 ? <Empty icon="🏢" text="Нет департаментов" /> : depts.map(d => (
-    <div key={d.id} className="card">
-      <div className="dept-card">
-        <div className="dept-icon">🏢</div>
-        <div className="dept-info">
-          <div className="dept-name">{d.name}</div>
-          <div className="dept-head">Руководитель: {d.head}</div>
-          <div className="dept-counters">👥 {d.staff} чел. · 🗂 {d.projects} проектов</div>
-        </div>
-      </div>
-      <div className="card-actions">
-        <button className="btn-del" onClick={()=>onDel(d.id)}>Удалить</button>
-      </div>
-    </div>
+function DeptSection({depts,onDel}){
+  if(!depts.length) return h(Empty,{icon:'🏢',text:'Нет департаментов'});
+  return h('div',null,depts.map(d=>
+    h('div',{key:d.id,class:'card'},
+      h('div',{class:'dept-card'},
+        h('div',{class:'dept-icon'},'🏢'),
+        h('div',null,
+          h('div',{style:{fontSize:14,fontWeight:700,color:'#111827'}},d.name),
+          h('div',{style:{fontSize:12,color:'#6b7280',marginTop:2}},'Руководитель: '+d.head),
+          h('div',{style:{fontSize:12,color:'#374151',marginTop:4}},'👥 '+d.staff+' чел. · 🗂 '+d.projects+' проектов'),
+        ),
+      ),
+      h('div',{class:'card-actions'},h('button',{class:'btn-del',onClick:()=>onDel(d.id)},'Удалить')),
+    )
   ));
 }
 
-// ── Section: People ──────────────────────────────────────────────
-function PeopleSection({ people, onDel }) {
-  return people.length === 0 ? <Empty icon="👤" text="Нет сотрудников" /> : people.map((p, i) => (
-    <div key={p.id} className="card">
-      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
-        <div className="avatar" style={{background:avatarColor(p.name,i)}}>{initials(p.name)}</div>
-        <div style={{flex:1}}>
-          <div className="card-title" style={{marginBottom:0}}>{p.name}</div>
-          <div style={{fontSize:12,color:'#6b7280'}}>{p.role} · {p.dept}</div>
-        </div>
-        <span title={p.hasJob?'ДИ загружена':'ДИ отсутствует'}
-          style={{fontSize:18,cursor:'default'}}>{p.hasJob?'✅':'⚠️'}</span>
-      </div>
-      <div className="card-meta">
-        <span>⏱ Норма: {p.capacity} ч/мес</span>
-        <span>·</span>
-        <span style={{color:p.hasJob?'#16a34a':'#d97706',fontWeight:600}}>{p.hasJob?'ДИ есть':'Нет ДИ'}</span>
-      </div>
-      <div className="card-actions">
-        <button className="btn-del" onClick={()=>onDel(p.id)}>Удалить</button>
-      </div>
-    </div>
+function PeopleSection({people,onDel}){
+  if(!people.length) return h(Empty,{icon:'👤',text:'Нет сотрудников'});
+  return h('div',null,people.map((p,i)=>
+    h('div',{key:p.id,class:'card'},
+      h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:6}},
+        h('div',{class:'avatar',style:{background:avatarColor(p.name,i)}},initials(p.name)),
+        h('div',{style:{flex:1}},
+          h('div',{class:'card-title',style:{marginBottom:0}},p.name),
+          h('div',{style:{fontSize:12,color:'#6b7280'}},p.role+' · '+p.dept),
+        ),
+        h('span',{style:{fontSize:18}},p.hasJob?'✅':'⚠️'),
+      ),
+      h('div',{class:'card-meta'},
+        '⏱ Норма: '+p.capacity+' ч/мес · ',
+        h('span',{style:{color:p.hasJob?'#16a34a':'#d97706',fontWeight:600}},p.hasJob?'ДИ есть':'Нет ДИ'),
+      ),
+      h('div',{class:'card-actions'},h('button',{class:'btn-del',onClick:()=>onDel(p.id)},'Удалить')),
+    )
   ));
 }
 
-// ── Section: Workload ────────────────────────────────────────────
-function LoadSection({ loads, projects, ganttMode, avgLoad, overloaded, soonDeadline }) {
-  const avgColor = avgLoad < 85 ? '#16a34a' : avgLoad < 110 ? '#d97706' : '#dc2626';
-  return (
-    <div>
-      <div className="summary-grid">
-        <div className="summary-card">
-          <div className="sc-value" style={{color:avgColor}}>{avgLoad}%</div>
-          <div className="sc-label">Средняя загрузка</div>
-        </div>
-        <div className="summary-card">
-          <div className="sc-value" style={{color:overloaded>0?'#dc2626':'#16a34a'}}>{overloaded}</div>
-          <div className="sc-label">Перегруженных</div>
-        </div>
-        <div className="summary-card">
-          <div className="sc-value" style={{color:soonDeadline>0?'#d97706':'#16a34a'}}>{soonDeadline}</div>
-          <div className="sc-label">Дедлайн ≤ 30д</div>
-        </div>
-        <div className="summary-card">
-          <div className="sc-value" style={{color:'#7c3aed'}}>{projects.length}</div>
-          <div className="sc-label">Всего проектов</div>
-        </div>
-      </div>
-      {ganttMode === 'gantt' ? <GanttView projects={projects} /> : <PeopleLoadView loads={loads} />}
-    </div>
+const PROJ_COLORS=["#7c3aed","#1a6fd4","#0f7a5a","#b45309","#be185d","#0e7490","#16a34a"];
+
+function LoadSection({loads,projects,ganttMode,avgLoad,overloaded,soonDeadline,today}){
+  const ac=avgLoad<85?'#16a34a':avgLoad<110?'#d97706':'#dc2626';
+  return h('div',null,
+    h('div',{class:'sum-grid'},
+      h('div',{class:'sum-card'},h('div',{class:'sum-val',style:{color:ac}},avgLoad+'%'),h('div',{class:'sum-lbl'},'Средняя загрузка')),
+      h('div',{class:'sum-card'},h('div',{class:'sum-val',style:{color:overloaded>0?'#dc2626':'#16a34a'}},overloaded),h('div',{class:'sum-lbl'},'Перегруженных')),
+      h('div',{class:'sum-card'},h('div',{class:'sum-val',style:{color:soonDeadline>0?'#d97706':'#16a34a'}},soonDeadline),h('div',{class:'sum-lbl'},'Дедлайн ≤ 30д')),
+      h('div',{class:'sum-card'},h('div',{class:'sum-val',style:{color:'#7c3aed'}},projects.length),h('div',{class:'sum-lbl'},'Всего проектов')),
+    ),
+    ganttMode==='gantt'?h(GanttView,{projects,today}):h(PeopleLoadView,{loads}),
   );
 }
 
-const PROJECT_COLORS = ["#7c3aed","#1a6fd4","#0f7a5a","#b45309","#be185d","#0e7490","#16a34a"];
+function GanttView({projects,today}){
+  const active=projects.filter(p=>p.start&&p.deadline);
+  if(!active.length) return h(Empty,{icon:'📊',text:'Нет проектов с датами'});
+  const dates=active.flatMap(p=>[new Date(p.start),new Date(p.deadline)]);
+  const minDate=Math.min(...dates.map(d=>d.getTime()));
+  const maxDate=Math.max(...dates.map(d=>d.getTime()));
+  const span=maxDate-minDate||86400000;
+  const viewMin=minDate-span*0.02, viewMax=maxDate+span*0.05;
+  const totalMs=viewMax-viewMin;
+  const PL=90,BW=242,ROW=32,HDR=36;
+  const H=active.length*ROW+HDR;
+  const toX=d=>PL+((new Date(d).getTime()-viewMin)/totalMs)*BW;
+  const todayX=PL+((today.getTime()-viewMin)/totalMs)*BW;
 
-function GanttView({ projects }) {
-  const active = projects.filter(p => p.start && p.deadline);
-  if (!active.length) return <Empty icon="📊" text="Нет проектов с датами" />;
-
-  const today = new Date(); today.setHours(0,0,0,0);
-  const dates = active.flatMap(p => [new Date(p.start), new Date(p.deadline)]);
-  const minDate = Math.min(...dates.map(d=>d.getTime()));
-  const maxDate = Math.max(...dates.map(d=>d.getTime()));
-  const span = maxDate - minDate || 86400000;
-  const viewMin = minDate - span * 0.02;
-  const viewMax = maxDate + span * 0.05;
-  const totalMs = viewMax - viewMin;
-
-  const PAD_LEFT = 90, BAR_WIDTH = 242, ROW = 32, HEADER = 36;
-  const H = active.length * ROW + HEADER;
-  const toX = d => PAD_LEFT + ((new Date(d).getTime() - viewMin) / totalMs) * BAR_WIDTH;
-  const todayX = PAD_LEFT + ((today.getTime() - viewMin) / totalMs) * BAR_WIDTH;
-
-  // Month labels
-  const monthLabels = [];
-  const d0 = new Date(viewMin); d0.setDate(1);
-  while (d0.getTime() <= viewMax) {
-    const x = toX(d0);
-    if (x > PAD_LEFT && x < PAD_LEFT + BAR_WIDTH) {
-      monthLabels.push({ x, label: d0.toLocaleDateString('ru',{month:'short'}) });
-    }
-    d0.setMonth(d0.getMonth()+1);
+  const months=[];
+  const md=new Date(viewMin); md.setDate(1);
+  while(md.getTime()<=viewMax){
+    const x=toX(md);
+    if(x>PL&&x<PL+BW) months.push({x,label:md.toLocaleDateString('ru',{month:'short'})});
+    md.setMonth(md.getMonth()+1);
   }
 
-  // Deadlines
-  const deadlines = [...active].sort((a,b)=>new Date(a.deadline)-new Date(b.deadline));
-  const diffDays = d => Math.round((new Date(d)-today)/86400000);
+  const sorted=[...active].sort((a,b)=>new Date(a.deadline)-new Date(b.deadline));
+  const diffDays=d=>Math.round((new Date(d)-today)/86400000);
 
-  return (
-    <div>
-      <div className="gantt-wrap">
-        <svg viewBox={`0 0 340 ${H}`} width="340" height={H} xmlns="http://www.w3.org/2000/svg">
-          {/* Month guides */}
-          {monthLabels.map((m,i)=>(
-            <g key={i}>
-              <line x1={m.x} y1={HEADER} x2={m.x} y2={H} stroke="#e5e7eb" strokeWidth="1"/>
-              <text x={m.x+3} y={HEADER-6} fontSize="10" fill="#9ca3af">{m.label}</text>
-            </g>
-          ))}
-          {/* Today line */}
-          {todayX > PAD_LEFT && todayX < PAD_LEFT + BAR_WIDTH && (
-            <g>
-              <line x1={todayX} y1={HEADER-12} x2={todayX} y2={H} stroke="#dc2626" strokeWidth="1.5" strokeDasharray="4 3"/>
-              <text x={todayX+2} y={HEADER-2} fontSize="9" fill="#dc2626" fontWeight="700">сег.</text>
-            </g>
-          )}
-          {/* Rows */}
-          {active.map((p, i) => {
-            const y = HEADER + i * ROW;
-            const isLate = new Date(p.deadline) < today && p.status !== 'Завершён';
-            const x1 = toX(p.start);
-            const x2 = toX(p.deadline);
-            const bw = Math.max(x2 - x1, 4);
-            const color = isLate ? '#fca5a5' : PROJECT_COLORS[i % PROJECT_COLORS.length];
-            const textColor = isLate ? '#991b1b' : '#fff';
-            const label = p.lead.length > 12 ? p.lead.slice(0,11)+'…' : p.lead;
-            return (
-              <g key={p.id}>
-                <rect x={0} y={y} width={340} height={ROW} fill={i%2===0?'#fafafa':'#fff'}/>
-                <text x={PAD_LEFT-4} y={y+ROW/2+4} fontSize="10" fill="#374151" textAnchor="end">{label}</text>
-                <rect x={x1} y={y+6} width={bw} height={ROW-12} rx="4" fill={color} opacity="0.9"/>
-                {bw > 30 && (
-                  <text x={x1+bw/2} y={y+ROW/2+4} fontSize="9" fill={textColor} textAnchor="middle"
-                    style={{pointerEvents:'none'}}>{p.name.slice(0,14)}</text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      <div className="deadline-section">
-        <h3>Ближайшие дедлайны</h3>
-        {deadlines.map(p => {
-          const diff = diffDays(p.deadline);
-          const dotCls = diff < 0 ? 'dot-red' : diff <= 14 ? 'dot-amber' : 'dot-green';
-          return (
-            <div key={p.id} className="deadline-item">
-              <div className={`dot ${dotCls}`}/>
-              <div className="deadline-name">{p.name}</div>
-              <div className="deadline-date">{diff < 0 ? `просрочен ${Math.abs(diff)}д` : diff === 0 ? 'сегодня' : `${diff}д`}</div>
-            </div>
+  return h('div',null,
+    h('div',{class:'gantt-wrap'},
+      h('svg',{viewBox:`0 0 340 ${H}`,width:340,height:H,xmlns:'http://www.w3.org/2000/svg'},
+        months.map((m,i)=>h('g',{key:i},
+          h('line',{x1:m.x,y1:HDR,x2:m.x,y2:H,stroke:'#e5e7eb','stroke-width':1}),
+          h('text',{x:m.x+3,y:HDR-6,'font-size':10,fill:'#9ca3af'},m.label),
+        )),
+        todayX>PL&&todayX<PL+BW&&h('g',null,
+          h('line',{x1:todayX,y1:HDR-12,x2:todayX,y2:H,stroke:'#dc2626','stroke-width':1.5,'stroke-dasharray':'4 3'}),
+          h('text',{x:todayX+2,y:HDR-2,'font-size':9,fill:'#dc2626','font-weight':700},'сег.'),
+        ),
+        active.map((p,i)=>{
+          const y=HDR+i*ROW;
+          const isLate=new Date(p.deadline)<today&&p.status!=='Завершён';
+          const x1=toX(p.start),x2=toX(p.deadline);
+          const bw=Math.max(x2-x1,4);
+          const color=isLate?'#fca5a5':PROJ_COLORS[i%PROJ_COLORS.length];
+          const tc=isLate?'#991b1b':'#fff';
+          const lbl=p.lead.length>12?p.lead.slice(0,11)+'…':p.lead;
+          return h('g',{key:p.id},
+            h('rect',{x:0,y,width:340,height:ROW,fill:i%2===0?'#fafafa':'#fff'}),
+            h('text',{x:PL-4,y:y+ROW/2+4,'font-size':10,fill:'#374151','text-anchor':'end'},lbl),
+            h('rect',{x:x1,y:y+6,width:bw,height:ROW-12,rx:4,fill:color,opacity:.9}),
+            bw>30&&h('text',{x:x1+bw/2,y:y+ROW/2+4,'font-size':9,fill:tc,'text-anchor':'middle'},p.name.slice(0,14)),
           );
-        })}
-      </div>
-    </div>
+        }),
+      )
+    ),
+    h('div',{class:'dl-section'},
+      h('h3',null,'Ближайшие дедлайны'),
+      sorted.map(p=>{
+        const diff=diffDays(p.deadline);
+        const dc=diff<0?'#dc2626':diff<=14?'#d97706':'#16a34a';
+        return h('div',{key:p.id,class:'dl-item'},
+          h('div',{class:'dot',style:{background:dc}}),
+          h('div',{style:{flex:1,fontSize:13,color:'#111827'}},p.name),
+          h('div',{style:{fontSize:11,color:'#6b7280'}},diff<0?`просрочен ${Math.abs(diff)}д`:diff===0?'сегодня':`${diff}д`),
+        );
+      })
+    )
   );
 }
 
-function PeopleLoadView({ loads }) {
-  if (!loads.length) return <Empty icon="👤" text="Нет сотрудников" />;
-  return loads.map((l, i) => {
-    const barCls = l.pct < 85 ? 'progress-green' : l.pct < 110 ? 'progress-amber' : 'progress-red';
-    const pctColor = l.pct < 85 ? '#16a34a' : l.pct < 110 ? '#d97706' : '#dc2626';
-    return (
-      <div key={l.id} className="people-card">
-        <div className="people-header">
-          <div className="avatar" style={{background:avatarColor(l.name,i)}}>{initials(l.name)}</div>
-          <div className="people-info">
-            <div className="people-name">{l.name}</div>
-            <div className="people-role">{l.role} · {l.dept}</div>
-          </div>
-          <div className="people-pct" style={{color:pctColor}}>{l.pct}%</div>
-        </div>
-        <div className="progress-track">
-          <div className={`progress-bar ${barCls}`} style={{width:`${Math.min(l.pct,100)}%`}}/>
-        </div>
-        {l.pct >= 110 && <div className="warn-tag warn-red">⚠ Перегрузка: {l.pct-100}% сверх нормы</div>}
-        {l.pct >= 85 && l.pct < 110 && <div className="warn-tag warn-amber">⚡ Высокая нагрузка</div>}
-        {l.assigned.length > 0
-          ? l.assigned.map(p => <div key={p.id} className="project-chip">{p.name} · {p.hours}ч</div>)
-          : <div style={{fontSize:12,color:'#9ca3af',marginTop:4}}>Нет назначенных проектов</div>
-        }
-      </div>
+function PeopleLoadView({loads}){
+  if(!loads.length) return h(Empty,{icon:'👤',text:'Нет сотрудников'});
+  return h('div',null,loads.map((l,i)=>{
+    const pc=l.pct<85?'#16a34a':l.pct<110?'#d97706':'#dc2626';
+    return h('div',{key:l.id,class:'pcard'},
+      h('div',{class:'ph'},
+        h('div',{class:'avatar',style:{background:avatarColor(l.name,i)}},initials(l.name)),
+        h('div',{style:{flex:1}},
+          h('div',{class:'pname'},l.name),
+          h('div',{class:'prole'},l.role+' · '+l.dept),
+        ),
+        h('div',{class:'ppct',style:{color:pc}},l.pct+'%'),
+      ),
+      h('div',{class:'ptrack'},h('div',{class:'pbar',style:{width:Math.min(l.pct,100)+'%',background:pc}})),
+      l.pct>=110&&h('div',{class:'wtag wred'},'⚠ Перегрузка: '+(l.pct-100)+'% сверх нормы'),
+      l.pct>=85&&l.pct<110&&h('div',{class:'wtag wamber'},'⚡ Высокая нагрузка'),
+      l.assigned.length>0
+        ? l.assigned.map(p=>h('div',{key:p.id,class:'pchip'},p.name+' · '+p.hours+'ч'))
+        : h('div',{style:{fontSize:12,color:'#9ca3af',marginTop:4}},'Нет назначенных проектов'),
     );
-  });
+  }));
 }
 
-// ── Section: Check ───────────────────────────────────────────────
-function CheckSection({ checkText, setCheckText, apiKey, setApiKey, onRun, aiLoading, aiResult }) {
-  const verdictColors = {
-    'соответствует':          { bg:'#f0fdf4', color:'#16a34a', icon:'✅' },
-    'частично соответствует': { bg:'#fffbeb', color:'#d97706', icon:'⚠️' },
-    'не соответствует':       { bg:'#fef2f2', color:'#dc2626', icon:'❌' },
-    'ошибка':                 { bg:'#fef2f2', color:'#dc2626', icon:'❌' },
+function CheckSection({checkText,setCheckText,apiKey,setApiKey,onRun,aiLoading,aiResult}){
+  const VC={
+    'соответствует':         {bg:'#f0fdf4',color:'#16a34a',icon:'✅'},
+    'частично соответствует':{bg:'#fffbeb',color:'#d97706',icon:'⚠️'},
+    'не соответствует':      {bg:'#fef2f2',color:'#dc2626',icon:'❌'},
+    'ошибка':                {bg:'#fef2f2',color:'#dc2626',icon:'❌'},
   };
-  const vc = aiResult ? (verdictColors[aiResult.verdict] || verdictColors['ошибка']) : null;
-
-  return (
-    <div>
-      <div className="card">
-        <div className="field">
-          <label>API-ключ Anthropic</label>
-          <input type="password" placeholder="sk-ant-…" value={apiKey} onChange={e=>setApiKey(e.target.value)} />
-          <div className="api-note">Ключ используется только в браузере, никуда не отправляется кроме api.anthropic.com</div>
-        </div>
-        <div className="field">
-          <label>Задача или назначение для проверки</label>
-          <textarea placeholder="Опишите задачу, требование или назначение сотрудника…" value={checkText} onChange={e=>setCheckText(e.target.value)} rows={5}/>
-        </div>
-        <button className="btn-save" style={{background:'#16a34a'}} onClick={onRun} disabled={aiLoading||!checkText.trim()}>
-          {aiLoading ? <><span className="spinner"></span> Проверяем…</> : '🔍 Проверить соответствие'}
-        </button>
-      </div>
-
-      {aiLoading && (
-        <div className="checking-row">
-          <div className="check-spinner"/>
-          <span>Анализируем базу знаний…</span>
-        </div>
-      )}
-
-      {aiResult && vc && (
-        <div>
-          <div className="verdict-card" style={{background:vc.bg, border:`1.5px solid ${vc.color}`}}>
-            <div className="verdict-title" style={{color:vc.color}}>{vc.icon} {aiResult.verdict?.charAt(0).toUpperCase()+(aiResult.verdict?.slice(1)||'')}</div>
-            <div className="verdict-score" style={{color:vc.color}}>Балл: {aiResult.score}/100</div>
-            <div className="progress-track">
-              <div className="progress-bar" style={{width:`${aiResult.score}%`,background:vc.color}}/>
-            </div>
-            <div className="verdict-summary">{aiResult.summary}</div>
-          </div>
-          {aiResult.responsible && (
-            <div>
-              <div className="ai-section-title">Ответственный</div>
-              <div className="resp-card">👤 {aiResult.responsible}</div>
-            </div>
-          )}
-          {aiResult.issues?.length > 0 && (
-            <div>
-              <div className="ai-section-title">Проблемы</div>
-              {aiResult.issues.map((iss,i)=><div key={i} className="ai-issue">• {iss}</div>)}
-            </div>
-          )}
-          {aiResult.recommendations?.length > 0 && (
-            <div>
-              <div className="ai-section-title">Рекомендации</div>
-              {aiResult.recommendations.map((r,i)=><div key={i} className="ai-rec">→ {r}</div>)}
-            </div>
-          )}
-          <div style={{fontSize:11,color:'#9ca3af',textAlign:'center',marginTop:12}}>
-            Рекомендуется ручная проверка результата
-          </div>
-        </div>
-      )}
-    </div>
+  const vc=aiResult?VC[aiResult.verdict]||VC['ошибка']:null;
+  return h('div',null,
+    h('div',{class:'card'},
+      h('div',{class:'field'},
+        h('label',null,'API-ключ Anthropic'),
+        h('input',{type:'password',placeholder:'sk-ant-…',value:apiKey,onInput:e=>setApiKey(e.target.value)}),
+        h('div',{class:'api-note'},'Ключ используется только в браузере'),
+      ),
+      h('div',{class:'field'},
+        h('label',null,'Задача для проверки'),
+        h('textarea',{placeholder:'Опишите задачу или назначение…',value:checkText,onInput:e=>setCheckText(e.target.value),rows:5}),
+      ),
+      h('button',{class:'btn-save',style:{background:'#16a34a'},onClick:onRun,disabled:aiLoading||!checkText.trim()},
+        aiLoading?[h('span',{class:'spinner'}),' Проверяем…']:'🔍 Проверить соответствие'
+      ),
+    ),
+    aiLoading&&h('div',{class:'checking'},h('div',{class:'cspinner'}),'Анализируем базу знаний…'),
+    aiResult&&vc&&h('div',null,
+      h('div',{class:'vcard',style:{background:vc.bg,border:`1.5px solid ${vc.color}`}},
+        h('div',{class:'vtitle',style:{color:vc.color}},vc.icon+' '+(aiResult.verdict||'').charAt(0).toUpperCase()+(aiResult.verdict||'').slice(1)),
+        h('div',{class:'vscore',style:{color:vc.color}},'Балл: '+aiResult.score+'/100'),
+        h('div',{class:'ptrack'},h('div',{class:'pbar',style:{width:aiResult.score+'%',background:vc.color}})),
+        h('div',{class:'vsumm'},aiResult.summary),
+      ),
+      aiResult.responsible&&h('div',null,h('div',{class:'astitle'},'Ответственный'),h('div',{class:'rcard'},'👤 '+aiResult.responsible)),
+      aiResult.issues?.length>0&&h('div',null,h('div',{class:'astitle'},'Проблемы'),aiResult.issues.map((is,i)=>h('div',{key:i,class:'aissue'},'• '+is))),
+      aiResult.recommendations?.length>0&&h('div',null,h('div',{class:'astitle'},'Рекомендации'),aiResult.recommendations.map((r,i)=>h('div',{key:i,class:'arec'},'→ '+r))),
+      h('div',{style:{fontSize:11,color:'#9ca3af',textAlign:'center',marginTop:12}},'Рекомендуется ручная проверка результата'),
+    ),
   );
 }
 
 // ── Modals ───────────────────────────────────────────────────────
-function FileModal({ onClose, onSave }) {
-  const ref = useRef();
-  return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-handle"/>
-        <h2>Загрузить файлы</h2>
-        <div className="field">
-          <label>Выберите файлы (PDF, DOCX, XLSX, TXT…)</label>
-          <input ref={ref} type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
-            style={{padding:'8px 0'}} />
-        </div>
-        <button className="btn-save" style={{'--section-color':'#1a6fd4'}} onClick={()=>{
-          if(ref.current?.files?.length) onSave(ref.current.files); else onClose();
-        }}>Загрузить</button>
-      </div>
-    </div>
+function FileModal({onClose,onSave}){
+  const ref=useRef();
+  return h('div',{class:'overlay',onClick:onClose},
+    h('div',{class:'modal',onClick:e=>e.stopPropagation()},
+      h('div',{class:'modal-handle'}),
+      h('h2',null,'Загрузить файлы'),
+      h('div',{class:'field'},
+        h('label',null,'Выберите файлы (PDF, DOCX, XLSX, TXT…)'),
+        h('input',{ref,type:'file',multiple:true,accept:'.pdf,.doc,.docx,.xls,.xlsx,.txt',style:{padding:'8px 0'}}),
+      ),
+      h('button',{class:'btn-save',style:{background:'#1a6fd4'},onClick:()=>{
+        if(ref.current?.files?.length) onSave(ref.current.files); else onClose();
+      }},'Загрузить'),
+    )
   );
 }
 
-function LinkModal({ onClose, onSave }) {
-  const [f, setF] = useState({ url:'', name:'', tags:'' });
-  return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-handle"/>
-        <h2>Добавить ссылку</h2>
-        <div className="field"><label>URL *</label><input placeholder="https://…" value={f.url} onChange={e=>setF({...f,url:e.target.value})}/></div>
-        <div className="field"><label>Название (необязательно)</label><input placeholder="Название ссылки" value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></div>
-        <div className="field"><label>Теги через запятую</label><input placeholder="PMO, Wiki" value={f.tags} onChange={e=>setF({...f,tags:e.target.value})}/></div>
-        <button className="btn-save" style={{'--section-color':'#7c3aed'}} onClick={()=>{if(f.url)onSave(f);}}>Сохранить</button>
-      </div>
-    </div>
+function LinkModal({onClose,onSave}){
+  const [f,setF]=useState({url:'',name:'',tags:''});
+  return h('div',{class:'overlay',onClick:onClose},
+    h('div',{class:'modal',onClick:e=>e.stopPropagation()},
+      h('div',{class:'modal-handle'}),
+      h('h2',null,'Добавить ссылку'),
+      h('div',{class:'field'},h('label',null,'URL *'),h('input',{placeholder:'https://…',value:f.url,onInput:e=>setF({...f,url:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Название'),h('input',{placeholder:'Название ссылки',value:f.name,onInput:e=>setF({...f,name:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Теги через запятую'),h('input',{placeholder:'PMO, Wiki',value:f.tags,onInput:e=>setF({...f,tags:e.target.value})})),
+      h('button',{class:'btn-save',style:{background:'#7c3aed'},onClick:()=>{if(f.url)onSave(f);}},'Сохранить'),
+    )
   );
 }
 
-function RegModal({ onClose, onSave }) {
-  const [f, setF] = useState({ name:'', status:'Действует', date:'', tags:'' });
-  const today = new Date().toISOString().slice(0,10);
-  return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-handle"/>
-        <h2>Новый регламент</h2>
-        <div className="field"><label>Название *</label><input value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></div>
-        <div className="field"><label>Статус</label>
-          <select value={f.status} onChange={e=>setF({...f,status:e.target.value})}>
-            <option>Действует</option><option>Разработка</option><option>Архив</option>
-          </select>
-        </div>
-        <div className="field"><label>Дата</label><input type="date" defaultValue={today} onChange={e=>{
-          const d=new Date(e.target.value); setF({...f,date:d.toLocaleDateString('ru')});
-        }}/></div>
-        <div className="field"><label>Теги</label><input placeholder="ИБ, PMO" value={f.tags} onChange={e=>setF({...f,tags:e.target.value})}/></div>
-        <button className="btn-save" style={{'--section-color':'#0f7a5a'}} onClick={()=>{if(f.name)onSave(f);}}>Сохранить</button>
-      </div>
-    </div>
+function RegModal({onClose,onSave}){
+  const [f,setF]=useState({name:'',status:'Действует',date:new Date().toLocaleDateString('ru'),tags:''});
+  return h('div',{class:'overlay',onClick:onClose},
+    h('div',{class:'modal',onClick:e=>e.stopPropagation()},
+      h('div',{class:'modal-handle'}),
+      h('h2',null,'Новый регламент'),
+      h('div',{class:'field'},h('label',null,'Название *'),h('input',{value:f.name,onInput:e=>setF({...f,name:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Статус'),h('select',{value:f.status,onChange:e=>setF({...f,status:e.target.value})},
+        h('option',null,'Действует'),h('option',null,'Разработка'),h('option',null,'Архив'),
+      )),
+      h('div',{class:'field'},h('label',null,'Теги'),h('input',{placeholder:'ИБ, PMO',value:f.tags,onInput:e=>setF({...f,tags:e.target.value})})),
+      h('button',{class:'btn-save',style:{background:'#0f7a5a'},onClick:()=>{if(f.name)onSave(f);}},'Сохранить'),
+    )
   );
 }
 
-function ProjModal({ people, depts, onClose, onSave }) {
-  const [f, setF] = useState({ name:'', status:'В работе', dept:'', lead:'', deadline:'', start:'', hours:'' });
-  return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-handle"/>
-        <h2>Новый проект</h2>
-        <div className="field"><label>Название *</label><input value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></div>
-        <div className="field"><label>Статус</label>
-          <select value={f.status} onChange={e=>setF({...f,status:e.target.value})}>
-            <option>В работе</option><option>Планируется</option><option>Завершён</option>
-          </select>
-        </div>
-        <div className="field"><label>Департамент</label>
-          <select value={f.dept} onChange={e=>setF({...f,dept:e.target.value})}>
-            <option value="">— выбрать —</option>
-            {depts.map(d=><option key={d.id}>{d.name}</option>)}
-          </select>
-        </div>
-        <div className="field"><label>Руководитель</label>
-          <select value={f.lead} onChange={e=>setF({...f,lead:e.target.value})}>
-            <option value="">— выбрать —</option>
-            {people.map(p=><option key={p.id}>{p.name}</option>)}
-          </select>
-        </div>
-        <div className="field"><label>Дата старта</label><input type="date" onChange={e=>setF({...f,start:e.target.value})}/></div>
-        <div className="field"><label>Дедлайн</label><input type="date" onChange={e=>setF({...f,deadline:e.target.value})}/></div>
-        <div className="field"><label>Трудозатраты (часов)</label><input type="number" placeholder="160" value={f.hours} onChange={e=>setF({...f,hours:e.target.value})}/></div>
-        <button className="btn-save" style={{'--section-color':'#7c3aed'}} onClick={()=>{if(f.name)onSave(f);}}>Сохранить</button>
-      </div>
-    </div>
+function ProjModal({people,depts,onClose,onSave}){
+  const [f,setF]=useState({name:'',status:'В работе',dept:'',lead:'',deadline:'',start:'',hours:''});
+  return h('div',{class:'overlay',onClick:onClose},
+    h('div',{class:'modal',onClick:e=>e.stopPropagation()},
+      h('div',{class:'modal-handle'}),
+      h('h2',null,'Новый проект'),
+      h('div',{class:'field'},h('label',null,'Название *'),h('input',{value:f.name,onInput:e=>setF({...f,name:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Статус'),h('select',{value:f.status,onChange:e=>setF({...f,status:e.target.value})},
+        h('option',null,'В работе'),h('option',null,'Планируется'),h('option',null,'Завершён'),
+      )),
+      h('div',{class:'field'},h('label',null,'Департамент'),h('select',{value:f.dept,onChange:e=>setF({...f,dept:e.target.value})},
+        h('option',{value:''},'— выбрать —'),
+        depts.map(d=>h('option',{key:d.id},d.name)),
+      )),
+      h('div',{class:'field'},h('label',null,'Руководитель'),h('select',{value:f.lead,onChange:e=>setF({...f,lead:e.target.value})},
+        h('option',{value:''},'— выбрать —'),
+        people.map(p=>h('option',{key:p.id},p.name)),
+      )),
+      h('div',{class:'field'},h('label',null,'Дата старта'),h('input',{type:'date',onInput:e=>setF({...f,start:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Дедлайн'),h('input',{type:'date',onInput:e=>setF({...f,deadline:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Трудозатраты (ч)'),h('input',{type:'number',placeholder:'160',value:f.hours,onInput:e=>setF({...f,hours:e.target.value})})),
+      h('button',{class:'btn-save',style:{background:'#7c3aed'},onClick:()=>{if(f.name)onSave(f);}},'Сохранить'),
+    )
   );
 }
 
-function DeptModal({ onClose, onSave }) {
-  const [f, setF] = useState({ name:'', head:'', staff:'', projects:'' });
-  return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-handle"/>
-        <h2>Новый департамент</h2>
-        <div className="field"><label>Название *</label><input value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></div>
-        <div className="field"><label>Руководитель</label><input value={f.head} onChange={e=>setF({...f,head:e.target.value})}/></div>
-        <div className="field"><label>Кол-во сотрудников</label><input type="number" value={f.staff} onChange={e=>setF({...f,staff:e.target.value})}/></div>
-        <div className="field"><label>Кол-во проектов</label><input type="number" value={f.projects} onChange={e=>setF({...f,projects:e.target.value})}/></div>
-        <button className="btn-save" style={{'--section-color':'#b45309'}} onClick={()=>{if(f.name)onSave(f);}}>Сохранить</button>
-      </div>
-    </div>
+function DeptModal({onClose,onSave}){
+  const [f,setF]=useState({name:'',head:'',staff:'',projects:''});
+  return h('div',{class:'overlay',onClick:onClose},
+    h('div',{class:'modal',onClick:e=>e.stopPropagation()},
+      h('div',{class:'modal-handle'}),
+      h('h2',null,'Новый департамент'),
+      h('div',{class:'field'},h('label',null,'Название *'),h('input',{value:f.name,onInput:e=>setF({...f,name:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Руководитель'),h('input',{value:f.head,onInput:e=>setF({...f,head:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Кол-во сотрудников'),h('input',{type:'number',value:f.staff,onInput:e=>setF({...f,staff:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Кол-во проектов'),h('input',{type:'number',value:f.projects,onInput:e=>setF({...f,projects:e.target.value})})),
+      h('button',{class:'btn-save',style:{background:'#b45309'},onClick:()=>{if(f.name)onSave(f);}},'Сохранить'),
+    )
   );
 }
 
-function PersonModal({ depts, onClose, onSave }) {
-  const [f, setF] = useState({ name:'', role:'', dept:'', capacity:160, hasJob:false });
-  return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={e=>e.stopPropagation()}>
-        <div className="modal-handle"/>
-        <h2>Новый сотрудник</h2>
-        <div className="field"><label>ФИО *</label><input placeholder="Иванов Иван" value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></div>
-        <div className="field"><label>Должность</label><input value={f.role} onChange={e=>setF({...f,role:e.target.value})}/></div>
-        <div className="field"><label>Департамент</label>
-          <select value={f.dept} onChange={e=>setF({...f,dept:e.target.value})}>
-            <option value="">— выбрать —</option>
-            {depts.map(d=><option key={d.id}>{d.name}</option>)}
-          </select>
-        </div>
-        <div className="field"><label>Норма часов/мес</label><input type="number" value={f.capacity} onChange={e=>setF({...f,capacity:Number(e.target.value)||160})}/></div>
-        <div className="field">
-          <label className="field-check">
-            <input type="checkbox" checked={f.hasJob} onChange={e=>setF({...f,hasJob:e.target.checked})}/>
-            Должностная инструкция загружена
-          </label>
-        </div>
-        <button className="btn-save" style={{'--section-color':'#be185d'}} onClick={()=>{if(f.name)onSave(f);}}>Сохранить</button>
-      </div>
-    </div>
+function PersonModal({depts,onClose,onSave}){
+  const [f,setF]=useState({name:'',role:'',dept:'',capacity:160,hasJob:false});
+  return h('div',{class:'overlay',onClick:onClose},
+    h('div',{class:'modal',onClick:e=>e.stopPropagation()},
+      h('div',{class:'modal-handle'}),
+      h('h2',null,'Новый сотрудник'),
+      h('div',{class:'field'},h('label',null,'ФИО *'),h('input',{placeholder:'Иванов Иван',value:f.name,onInput:e=>setF({...f,name:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Должность'),h('input',{value:f.role,onInput:e=>setF({...f,role:e.target.value})})),
+      h('div',{class:'field'},h('label',null,'Департамент'),h('select',{value:f.dept,onChange:e=>setF({...f,dept:e.target.value})},
+        h('option',{value:''},'— выбрать —'),
+        depts.map(d=>h('option',{key:d.id},d.name)),
+      )),
+      h('div',{class:'field'},h('label',null,'Норма часов/мес'),h('input',{type:'number',value:f.capacity,onInput:e=>setF({...f,capacity:Number(e.target.value)||160})})),
+      h('div',{class:'field'},h('label',{class:'field-check'},
+        h('input',{type:'checkbox',checked:f.hasJob,onChange:e=>setF({...f,hasJob:e.target.checked})}),
+        'Должностная инструкция загружена',
+      )),
+      h('button',{class:'btn-save',style:{background:'#be185d'},onClick:()=>{if(f.name)onSave(f);}},'Сохранить'),
+    )
   );
 }
 
-// ── Helpers ──────────────────────────────────────────────────────
-function Empty({ icon, text }) {
-  return (
-    <div className="empty">
-      <div className="empty-icon">{icon}</div>
-      <div>{text}</div>
-    </div>
-  );
-}
-
-// ── Mount ────────────────────────────────────────────────────────
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+render(h(App,null), document.getElementById('root'));
 </script>
 </body>
 </html>
